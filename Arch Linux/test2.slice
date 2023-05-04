@@ -1,0 +1,4 @@
+[Slice]
+CPUQuota=60%
+MemoryHigh=200M
+MemoryMax=300M

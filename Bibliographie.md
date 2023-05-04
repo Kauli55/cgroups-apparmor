@@ -49,6 +49,10 @@ https://wiki.archlinux.org/title/cgroups#With_the_cgroup_virtual_filesystem
 
     • Exemples de cgroups avec systemd et libcgroup
 
+https://tecadmin.net/running-a-php-script-as-systemd-service-in-linux/
+
+    • Exemple de création de services avec PHP.
+
 APPARMOR :
 
 https://doc.ubuntu-fr.org/apparmor#:~:text=AppArmor%20(%22Application%20Armor%22),les%20capacit%C3%A9s%20de%20celui%2Dci.
