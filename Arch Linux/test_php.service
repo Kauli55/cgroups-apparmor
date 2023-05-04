@@ -1,0 +1,13 @@
+[Unit]
+Description=Service de test exécutant un code php
+
+[Service]
+Type=simple
+Slice=test.slice
+MemoryHigh=500M
+MemoryMax=800M
+
+ExecStart=/usr/bin/php /home/test_cgroups/index.php
+
+[Install]
+WantedBy=multi-user.target

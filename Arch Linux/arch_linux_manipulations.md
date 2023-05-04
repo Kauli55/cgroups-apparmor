@@ -8,7 +8,10 @@ Sur notre arch linux, nous souhaitons utiliser d'abord systemd pour manipuler le
 
 # systemd
 
-Premièrement, si nous souhaitons utiliser systemd pour gérer les cgroups, il faudra effectuer nos opérations dans un répertoire ayant comme chemin /etc/systemd/system
+Premièrement, si nous souhaitons utiliser systemd pour gérer les cgroups, il faudra effectuer nos opérations dans un répertoire ayant comme chemin /etc/systemd/
+
+Si nous nous mettons ensuite dans le dossier /system/ de systemd, alors nos services seront lancés au démarrage du système si activés.
+Si nous nous mettons dans le dossier /user/ de systemd, alors nos services seront lancés à la connexion d'un utilisateur.
 
 On s'intéressera déjà aux slices et aux services.
 
@@ -29,3 +32,11 @@ Il ne sera pas possible de le dépasser dans ce slice.
 
 Il est possible de lancer des scripts dans un slice particulier. Dans ce cas là, on utilisera la commande : systemd-run --slice=test.slice _commandes_
 
+Créons d'abord un simple service qui exécutera un code PHP.
+Ce code PHP ne sera compris que d'un simple 'echo' afin de vérifier si le système marche.
+
+Il est utile de noter que la manipulation manuelle des cgroups, c'est-à-dire par la modifications des fichiers cpu,memory,... d'un cgroups est différent dans un système sous systemd.
+En effet, systemd va monter tous les contrôleurs dans le dossier /sys/fs/cgroup/
+Si nous souhaitons créer un cgroup utilisant un de ces contrôleurs, alors il faudra soit démonter le contrôleur de ce dossier, soit créer le cgroup dans ce dossier.
+
+Si nous faisons juste la commande : "mount -t cgroup -o cpu _nom_ _chemin/vers/cgroup_", alors il y a de fortes chances qu'une erreur apparaîsse notant que le mount point est occupé.
