@@ -1,0 +1,8 @@
+[Unit]
+Description=Service de test exécutant un code php pour la montée en charge du CPU.
+
+[Service]
+Type=simple
+Slice=test2.slice
+
+ExecStart=/usr/bin/php /home/test_cgroups/charge_cpu.php

@@ -93,6 +93,96 @@ Cela est dû au fait que nous souhaitions arrêter le service après l'exécutio
 Comme le service s'arrête, le système essaie de le redémarrer mais il n'y a plus de code à exécuter.
 Si nous souhaitons que le service s'exécute au démarrage du système, alors il faudra utiliser la commande "git enable test_php".
 
+Nous allons maintenant exécuter un code PHP permettant de mettre une charge conséquente sur le CPU.
+Nous utiliserons ce code PHP dans un service afin de voir si une limitation à l'accès du CPU est possible.
+Nous regarderons d'abord combien de temps le service met à finir son exécution avec une limite de 60% de quota sur le CPU, puis nous essaierons avec une limite de 100%.
+
+Ce code PHP sera placé dans le répertoire /home/test_cgroups/
+Son code est le suivant :
+
+charge_cpu.php
+---
+<?php
+
+#Montée en puissance niveau calcul --> Charge CPU
+$debut=microtime(true);
+echo"Début du test pour la montée en charge du CPU.\n";
+
+$a=1;
+for($i=0;$i<1000000000;$i++) #1 000 000 000
+{
+    $a+=$i
+}
+
+$fin=microtime(true);
+$temps_execution = $fin - $debut;
+echo"Fin du test pour la montée en charge du CPU.\n";
+echo"Durée du test : $temps_execution secondes \n";
+
+?>
+---
+
+Le but de ce code PHP est de lancer un timer, exécuter une boucle qui demandera de nombreux calculs et arrêter le timer à la fin de cette boucle avant d'afficher le temps qu'a pris le code à s'exécuter.
+
+Créons maintenant un slice où nous définirons les limites du service.
+Même si nous plaçons une limite de mémoire, ce n'est pas la variable que nous voulons tester.
+Le code de notre slice est :
+
+test2.slice
+---
+[Slice]
+CPUQuota=60%
+MemoryHigh=200M
+MemoryMax=300M
+---
+
+Le quota maximum du CPU pour les services s'exécutant dans ce slice est de 60%.
+
+Il ne reste plus que le fichier service :
+
+charge_cpu.service
+---
+[Unit]
+Description=Service de test exécutant un code php pour la montée en charge du CPU.
+
+[Service]
+Type=simple
+Slice=test2.slice
+
+ExecStart=/usr/bin/php /home/test_cgroups/charge_cpu.php
+---
+
+Notre service appartiendra bien au slice 'test2.slice' et exécutera bien notre fichier 'charge_cpu.php'.
+
+Nous mettons à jour la liste des services avec la commande : systemctl daemon-reload
+Enfin, nous pouvons lancer le service avec : systemctl start charge_cpu
+
+Si nous faisons la commande 'systemctl status charge_cpu', nous pouvons voir que le service est en cours d'exécution.
+Pour voir la charge CPU et mémoire des services en cours d'exécutions, nous pouvons utiliser la commande : systemd-cgtop
+
+Status après démarrage de charge_cpu :
+![Status après démarrage de charge_cpu](./ChargeCPU1.PNG)
+
+Résultat de systemd-cgtop :
+![Résultat de systemd-cgtop](./ChargeCPU2.PNG)
+
+Status après arrêt de charge_cpu :
+![Status après arrêt de charge_cpu](./ChargeCPU3.PNG)
+
+Nous pouvons voir que le test a duré environ 40 secondes.
+Modifions dans 'test2.slice' la valeur de CPUQuota et remplaçons 60% par 100%.
+
+Après cette modification et après avoir relancé le service charge_cpu, nous trouvons le résultat suivant :
+
+Status après arrêt de charge_cpu avec 100% de CPU :
+![Status après arrêt de charge_cpu avec 100% de CPU](./ChargeCPU4.PNG)
+
+La durée est maintenant de 21 secondes : la limitation du CPU a bien été respectée pour le 1er exemple.
+
+# libcgroup
+
+
+
 Il est utile de noter que la manipulation manuelle des cgroups, c'est-à-dire par la modifications des fichiers cpu,memory,... d'un cgroups est différent dans un système sous systemd.
 En effet, systemd va monter tous les contrôleurs dans le dossier /sys/fs/cgroup/
 Si nous souhaitons créer un cgroup utilisant un de ces contrôleurs, alors il faudra soit démonter le contrôleur de ce dossier, soit créer le cgroup dans ce dossier.

@@ -5,7 +5,7 @@ $debut=microtime(true);
 echo"Début du test pour la montée en charge du CPU.\n";
 
 $a=1;
-for($i=0;$i<100000;$i++)
+for($i=0;$i<1000000000;$i++) #1 000 000 000
 {
     $a+=$i
 }
