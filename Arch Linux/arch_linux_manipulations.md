@@ -181,7 +181,46 @@ La durée est maintenant de 21 secondes : la limitation du CPU a bien été resp
 
 # libcgroup
 
+Même si des commandes libcgroup existent pour créer des cgroups, ils ne seront pas gardés en mémoire au démarrage de la machine.
+Nous devrons donc utiliser le fichier '/etc/cgconfig.conf'.
 
+Ce fichier sera créé grâce à la commande 'systemctl start cgconfig'.
+On préçisera à l'intérieur quels sont les répertoires cgroupes qui doivent être créés, qui peut administrer le cgroup, qui peut exécuter les fichiers à l'intérieur du cgroup, quelles sont les limitations dans ce cgroup,...
+
+Remarque : l'écriture des limitations dans ce fichier n'est pas identique à la documentation en ligne.
+Pour être sûr de modifier les bons paramètres, il faut aller directement dans les fichiers situés dans /sys/fs/cgroup/
+Par exemple, memory.limit_by_bytes produit une erreur.
+Il faudra utiliser memory.high et memory.max pour obtenir la limitation attendue.
+
+Nous voudrons cependant ne pas modifier les paramètres par défaut du répertoire racine /sys/fs/cgroup.
+Nous utiliserons donc la commande : "mkdir /sys/fs/cgroup/memory"
+
+Enfin, nous allons pouvoir modifier le fichier cgconfig.conf.
+
+/etc/cgconfig.conf
+---
+group memory/test_cpumem {
+    perm {
+        task {
+            uid = root;
+            gid = root;
+        }
+        admin {
+            uid = root;
+            gid = root;
+        }
+    }
+    cpu {}
+    memory {
+        memory.high = 1000000;
+        memory.max = 2000000;
+    }
+}
+---
+
+Dans le cgroup situé au répertoire /sys/fs/cgroup/memory/test_cpumem , le seul utilisateur autorisé à modifier et exécuter dans ce groupe est l'utilisateur root.
+Il n'y a pas de limitations pour le CPU mais il y a des limitations en mémoire.
+Les processus n'essaieront pas de dépasser les 1Mb de mémoire et ont comme limite absolue une limite équivalente à 2Mb.
 
 Il est utile de noter que la manipulation manuelle des cgroups, c'est-à-dire par la modifications des fichiers cpu,memory,... d'un cgroups est différent dans un système sous systemd.
 En effet, systemd va monter tous les contrôleurs dans le dossier /sys/fs/cgroup/
