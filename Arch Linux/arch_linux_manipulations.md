@@ -236,12 +236,68 @@ Script venant du site : https://zarak.fr/linux/exploration-des-cgroups/
 
 /home/test_cgroups/testMemoire.c
 ---
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main(void)
+{
+    int arret = 1;
+    while ( arret != -1 )
+    {
+        void \*ptr = malloc(arret*1024);
+        arret = arret * 10;
+
+        if (ptr == NULL)
+        {
+            printf("Il n'y a plus de memoire disponible.\n");
+            arret = -1;
+        }
+        else{
+            printf("Memoire toujours disponible.\n");
+        }
+        free(ptr);
+    }
+
+    return(0);
+}
 ---
 
 Nous utiliserons ctte commande afin d'exécuter le script dans notre cgroup : "cgexec -g memory:memory/test_cpumem ./testMemoire"
+L'option -g permet de définir les contrôleurs qui devront être utilisés ainsi que le chemin vers le cgroup où l'on doit exécuter notre commande.
+Dans notre commande, nous n'utiliserons que le contrôleur 'memory' et le chemin à partir de la racine '/sys/fs/cgroup'.
+
+Nous allons donc pouvoir tester notre code d'une part sans limitation en l'exécutant normalement, puis avec des restrictions en mémoire établies dans le cgroup test_cpumem.
+
+Nous nous mettons d'abord dans le répertoire situé au '/home/test_cgroups'.
+Après avoir compilé 'testMemoire.c', nous pouvons exécuter le code simplement avec './testMemoire'
+
+![Comportement normal du script](./ChargeMem1.PNG)
+
+Nous pouvons voir que les prints dans le code sont bien affichés.
+De plus, comme plusieurs prints indiquants qu'il reste de la mémoire sont effectués, cela veut dire qu'il y a beaucoup plus que 10kb de mémoire disponible.
+
+Intéressons nous maintenant à ce même code exécuté dans notre cgroup.
+Nous utiliserons la commande vu précedemment : "cgexec -g memory:memory/test_cpumem ./testMemoire"
+
+![Comportement dans le cgroup](./ChargeMem2.PNG)
+
+Aucun print n'est affiché et seulement "Killed" est affiché.
+Le code a donc été interrompu par le OOM Killer.
+Cela veut donc dire que le processus exécutant le code 'testMemoire' a bien dépassé la limite qui était autorisée.
+Les limites introduises dans le fichier 'cgconfig.conf' ont bien été respecté.
+
+# Manière manuelle
+
+Il est aussi possible de créer manuellement un nouveau cgroup.
+Pour cela, il faut d'abord créer un répertoire dans la racine 'cgroup' (Toujours dans le répertoire '/sys/fs/cgroup')
+Nous créons ainsi le répertoire 'test_manu'.
+
+Nous devons ensuite monter la hiérarchie afin de préciser les contrôleurs agissant sur ce cgroup.
+Une commande possible est : "mount -t cgroup -o net_prio test_manu /sys/fs/cgroup/test_manu"
 
 Il est utile de noter que la manipulation manuelle des cgroups, c'est-à-dire par la modifications des fichiers cpu,memory,... d'un cgroups est différent dans un système sous systemd.
 En effet, systemd va monter tous les contrôleurs dans le dossier /sys/fs/cgroup/
 Si nous souhaitons créer un cgroup utilisant un de ces contrôleurs, alors il faudra soit démonter le contrôleur de ce dossier, soit créer le cgroup dans ce dossier.
 
-Si nous faisons juste la commande : "mount -t cgroup -o cpu _nom_ _chemin/vers/cgroup_", alors il y a de fortes chances qu'une erreur apparaîsse expliquant que le mount point est occupé.
+Si nous faisons juste la commande : "mount -t cgroup -o cpu _nom_ _chemin/vers/cgroup_", alors il y a de fortes chances qu'une erreur apparaisse expliquant que le mount point est occupé.
