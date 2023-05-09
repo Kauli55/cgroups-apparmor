@@ -212,15 +212,33 @@ group memory/test_cpumem {
     }
     cpu {}
     memory {
-        memory.high = 1000000;
-        memory.max = 2000000;
+        memory.high = 10K;
+        memory.max = 50K;
     }
 }
 ---
 
 Dans le cgroup situé au répertoire /sys/fs/cgroup/memory/test_cpumem , le seul utilisateur autorisé à modifier et exécuter dans ce groupe est l'utilisateur root.
 Il n'y a pas de limitations pour le CPU mais il y a des limitations en mémoire.
-Les processus n'essaieront pas de dépasser les 1Mb de mémoire et ont comme limite absolue une limite équivalente à 2Mb.
+Les processus n'essaieront pas de dépasser les 10KB de mémoire et ont comme limite absolue une limite équivalente à 50KB.
+
+Nous devrons ensuite relancer la fichier de configuration afin que les changements se répercutent sur le système.
+Nous utiliserons pour cela la commande : "systemctl start cgconfig".
+Pour que les changements se fassent automatiquement au démarrage de la machine, nous utiliserons ensuite la commande : "systemctl enable cgconfig".
+
+Pour créer le test permettant de mesurer l'impact sur la mémoire, nous utiliserons un script écrit en C.
+Nous utiliserons des mallocs afin d'occuper la mémoire le plus possible.
+
+Remarque : il n'est pas possible de créer un fichier directement dans le répertoire des cgroups.
+Nous utilserons une autre commande afin d'exécuter notre script dans le cgroup créé.
+
+Script venant du site : https://zarak.fr/linux/exploration-des-cgroups/
+
+/home/test_cgroups/testMemoire.c
+---
+---
+
+Nous utiliserons ctte commande afin d'exécuter le script dans notre cgroup : "cgexec -g memory:memory/test_cpumem ./testMemoire"
 
 Il est utile de noter que la manipulation manuelle des cgroups, c'est-à-dire par la modifications des fichiers cpu,memory,... d'un cgroups est différent dans un système sous systemd.
 En effet, systemd va monter tous les contrôleurs dans le dossier /sys/fs/cgroup/
