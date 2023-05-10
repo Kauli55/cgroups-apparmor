@@ -289,15 +289,67 @@ Les limites introduises dans le fichier 'cgconfig.conf' ont bien été respecté
 
 # Manière manuelle
 
+Cette méthode ne permet pas de créer des cgroups de manière permanente.
+Ces cgroups seront supprimés au réallumage de la machine.
+
 Il est aussi possible de créer manuellement un nouveau cgroup.
 Pour cela, il faut d'abord créer un répertoire dans la racine 'cgroup' (Toujours dans le répertoire '/sys/fs/cgroup')
 Nous créons ainsi le répertoire 'test_manu'.
 
-Nous devons ensuite monter la hiérarchie afin de préciser les contrôleurs agissant sur ce cgroup.
+Nous devons ensuite monter la hiérarchie afin de préciser les contrôleurs agissant sur ce cgroup si ceux-ci doivent être différents des contrôleurs du cgroup parent.
 Une commande possible est : "mount -t cgroup -o net_prio test_manu /sys/fs/cgroup/test_manu"
+Cette commande ferait en sorte que seul le contrôleur net_prio soit accessible dans notre cgroup.
+Pour voir si le cgroup fonctionne, nous réexécuterons le code testant la charge de mémoire.
+
+Pour ce faire, nous devrons modifier directement les fichiers correspondant à nos besoins.
+Dans notre cas, il faudra modifier "memory.high" et "memory.max" du répertoire '/sys/fs/cgroup/test_manu' afin de remettre les limites de mémoire.
+Nous pouvons notamment utiliser la commande "echo" ainsi qu'une redirection.
+
+![Utilisation de 'echo' pour modifier des valeurs](./ChargeMem3.PNG)
+
+Après ces modifications, il faut maintenant tester les changements afin de voir si ils ont bien été pris en compte ou non.
+Pour pouvoir exécuter notre code C dans le cgroup 'test_manu', il faudra insérer son PID dans le fichier 'cgroup.procs' du cgroup.
+Cela va indiquer au cgroup les processus qui doivent être gérés.
+
+Un premier problème est que l'exécution du script 'testMemoire' doit être lancée dans le cgroup afin de bien tester la capacité mémoire du cgroup.
+Une solution serait de mettre le PID du terminal connecté au serveur dans 'cgroup.procs' puis d'exécuter le script.
+Le processus créé par le terminal sera lui aussi dans le cgroup puisque son parent appartient à ce même cgroup.
+Nous utiliserons donc la commande : "echo $$ > /sys/fs/cgroup/test_manu/cgroup.procs"
+Nous pouvons maintenant exécuter le script avec la commande : "/home/test_cgroups/testMemoire"
+
+Un problème survient : la commande semble exécuter mais nous nous faisons déconnecter du serveur.
+Le serveur nous redemande nos identifiants.
+Cela est sans doute le fait que notre terminal dépasse les limites de mémoire du cgroup et se fasse kill par le OOM Killer.
+
+Un autre moyen de tester notre script serait de passer par un script bash qui appartiendra au cgroup.
+Cela aura pour effet de ne pas affecter les limites de notre terminal tout en gardant notre code C dans le cgroup 'test_manu'.
+Nous pourrons donc voir si notre cgroup possède bien les limites demandées.
+
+Effectivement, dans notre exemple nous savons déjà que les limites sont implentées.
+Cependant, si nous avions aussi changer des données CPU, alors il faudrait pouvoir aussi voir ces résultats.
+
+Le script bash est le suivant :
+
+/home/test_cgroups/bashTestManu.sh
+---
+#!bin/bash
+
+#Insertion du PID dans le cgroup:
+echo $$ > /sys/fs/cgroup/test_manu/cgroup.procs
+$(/home/test_cgroups/testMemoire)
+exit 0
+---
+
+Déjà, notre terminal n'est pas kill par le OOM Killer.
+De plus, nous pouvons voir que notre code se fait kill par le OOM Killer.
+
 
 Il est utile de noter que la manipulation manuelle des cgroups, c'est-à-dire par la modifications des fichiers cpu,memory,... d'un cgroups est différent dans un système sous systemd.
 En effet, systemd va monter tous les contrôleurs dans le dossier /sys/fs/cgroup/
 Si nous souhaitons créer un cgroup utilisant un de ces contrôleurs, alors il faudra soit démonter le contrôleur de ce dossier, soit créer le cgroup dans ce dossier.
 
+
+
 Si nous faisons juste la commande : "mount -t cgroup -o cpu _nom_ _chemin/vers/cgroup_", alors il y a de fortes chances qu'une erreur apparaisse expliquant que le mount point est occupé.
+
+Par bonne pratique, il n'est pas du tout conseillé d'enlever des contrôleurs appartenant à '/sys/fs/cgroup' puisque le système aura besoin de ce répertoire.
