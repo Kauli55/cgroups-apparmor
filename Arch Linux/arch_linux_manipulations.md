@@ -24,8 +24,10 @@ nano test.slice (ou équivalent, l'important est de créer le fichier test.slice
 
 On rajoute dans le fichier 'test.slice' :
 
+```
 [Slice]
 CPUQuota=30%
+```
 
 Cela veut dire que tous ce qui sera executé dans test.slice aura un quota maximal de CPU de 30%.
 Il ne sera pas possible de le dépasser dans ce slice.
@@ -44,19 +46,21 @@ Il n'a d'ailleurs pas besoin d'être dans un sous-dossier de systemd.
 
 On placera donc dans cet exemple notre fichier "index.php" dans le répertoire /home/test_cgroups/
 Son code est le suivant :
-index.php
----
+
+/home/test_cgroups/index.php
+```
 <?php
 
 $a="Bienvenue sur l'Arch Linux.";
 echo"$a\n";
----
+```
 
 Ce code ne sert qu'à produire un affichage indiquant : Bienvenue sur l'Arch Linux.
 
 Le code du fichier "test_php.service" situé dans le répertoire '/etc/systemd/system' est le suivant:
-test_php.service
----
+
+/etc/systemd/system/test_php.service
+```
 [Unit]
 Description=Service de test exécutant un code php
 
@@ -71,7 +75,7 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
----
+```
 
 Pour une briève explication du fichier : 
 Description --> La description du service. Sera affichée quand nous demanderons le status du service.
@@ -100,8 +104,8 @@ Nous regarderons d'abord combien de temps le service met à finir son exécution
 Ce code PHP sera placé dans le répertoire /home/test_cgroups/
 Son code est le suivant :
 
-charge_cpu.php
----
+/home/test_cgroups/charge_cpu.php
+```
 <?php
 
 #Montée en puissance niveau calcul --> Charge CPU
@@ -120,7 +124,7 @@ echo"Fin du test pour la montée en charge du CPU.\n";
 echo"Durée du test : $temps_execution secondes \n";
 
 ?>
----
+```
 
 Le but de ce code PHP est de lancer un timer, exécuter une boucle qui demandera de nombreux calculs et arrêter le timer à la fin de cette boucle avant d'afficher le temps qu'a pris le code à s'exécuter.
 
@@ -128,20 +132,20 @@ Créons maintenant un slice où nous définirons les limites du service.
 Même si nous plaçons une limite de mémoire, ce n'est pas la variable que nous voulons tester.
 Le code de notre slice est :
 
-test2.slice
----
+/etc/systemd/system/test2.slice
+```
 [Slice]
 CPUQuota=60%
 MemoryHigh=200M
 MemoryMax=300M
----
+```
 
 Le quota maximum du CPU pour les services s'exécutant dans ce slice est de 60%.
 
 Il ne reste plus que le fichier service :
 
-charge_cpu.service
----
+/etc/systemd/system/charge_cpu.service
+```
 [Unit]
 Description=Service de test exécutant un code php pour la montée en charge du CPU.
 
@@ -150,7 +154,7 @@ Type=simple
 Slice=test2.slice
 
 ExecStart=/usr/bin/php /home/test_cgroups/charge_cpu.php
----
+```
 
 Notre service appartiendra bien au slice 'test2.slice' et exécutera bien notre fichier 'charge_cpu.php'.
 
@@ -198,7 +202,7 @@ Nous utiliserons donc la commande : "mkdir /sys/fs/cgroup/memory"
 Enfin, nous allons pouvoir modifier le fichier cgconfig.conf.
 
 /etc/cgconfig.conf
----
+```
 group memory/test_cpumem {
     perm {
         task {
@@ -216,7 +220,7 @@ group memory/test_cpumem {
         memory.max = 50K;
     }
 }
----
+```
 
 Dans le cgroup situé au répertoire /sys/fs/cgroup/memory/test_cpumem , le seul utilisateur autorisé à modifier et exécuter dans ce groupe est l'utilisateur root.
 Il n'y a pas de limitations pour le CPU mais il y a des limitations en mémoire.
@@ -235,7 +239,7 @@ Nous utilserons une autre commande afin d'exécuter notre script dans le cgroup 
 Script venant du site : https://zarak.fr/linux/exploration-des-cgroups/
 
 /home/test_cgroups/testMemoire.c
----
+```
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -261,7 +265,7 @@ int main(void)
 
     return(0);
 }
----
+```
 
 Nous utiliserons ctte commande afin d'exécuter le script dans notre cgroup : "cgexec -g memory:memory/test_cpumem ./testMemoire"
 L'option -g permet de définir les contrôleurs qui devront être utilisés ainsi que le chemin vers le cgroup où l'on doit exécuter notre commande.
@@ -286,6 +290,20 @@ Aucun print n'est affiché et seulement "Killed" est affiché.
 Le code a donc été interrompu par le OOM Killer.
 Cela veut donc dire que le processus exécutant le code 'testMemoire' a bien dépassé la limite qui était autorisée.
 Les limites introduises dans le fichier 'cgconfig.conf' ont bien été respecté.
+
+Il est également possible de créer des cgroups de manières non permanentes avec des commandes venant de libcgroup.
+La création d'un groupe se fait avec la commande : 'cgcreate -t idUser:idGroupeUser -a idUser:idGroupeUser -g contrôleur:cheminVersCgroup'
+
+L'utilisateur derrière l'option -t va pouvoir ajouter des processus au cgroup à l'aide des commandes libcgroup.
+L'utilisateur derrière l'option -a va pouvoir modifier les différentes limitations du cgroup par l'intermédiaire des fichiers ressources.
+L'option -g est obligatoire et permet de définir quels contrôleurs seront dans notre cgroup ainsi que son chemin à partir du répertoire racine des cgroups. (/sys/fs/cgroup)
+
+Il est possible de modifier les différentes limitations avec l'utilisation d'une commande de libcgroup.
+Ces changements ne sont pas permanents mais uniquement temporaires.
+Il faudra donc les repréciser après un reboot.
+Cette commande est : 'cgset -r nomParamètre=NouvelleValeur cheminVersCgroup'
+
+L'option -r est obligatoire et permet de définir le fichier qui doit être modifié et la nouvelle valeur qui doit être insérée dans ce fichier.
 
 # Manière manuelle
 
@@ -331,14 +349,12 @@ Cependant, si nous avions aussi changer des données CPU, alors il faudrait pouv
 Le script bash est le suivant :
 
 /home/test_cgroups/bashTestManu.sh
----
+```
 #!bin/bash
-
-#Insertion du PID dans le cgroup:
 echo $$ > /sys/fs/cgroup/test_manu/cgroup.procs
 $(/home/test_cgroups/testMemoire)
 exit 0
----
+```
 
 Déjà, notre terminal n'est pas kill par le OOM Killer.
 De plus, nous pouvons voir que notre code se fait kill par le OOM Killer.
@@ -347,8 +363,40 @@ De plus, nous pouvons voir que notre code se fait kill par le OOM Killer.
 Il est utile de noter que la manipulation manuelle des cgroups, c'est-à-dire par la modifications des fichiers cpu,memory,... d'un cgroups est différent dans un système sous systemd.
 En effet, systemd va monter tous les contrôleurs dans le dossier /sys/fs/cgroup/
 Si nous souhaitons créer un cgroup utilisant un de ces contrôleurs, alors il faudra soit démonter le contrôleur de ce dossier, soit créer le cgroup dans ce dossier.
+Cependant, un système sous systemd autorise aussi la manipulation des contrôleurs n'étant disponible que pour cgroup v1.
 
+# Manipulation des cgroups pour différents utilisateurs
 
+Nous allons maintenant voir le comportement de cgroups avec des utilisateurs différents.
+Le but est que chaque utilisateur possède des limites propres au CPU.
+
+Créons d'abord deux utilisateurs :
+'useradd -m user_A | useradd -m user_B'
+Nous leur donnerons ensuite un mot de passe quelconque.
+
+Nous allon sensuite récupérer les uid des différents utilisateurs avec la commande : "id user_A | id user_B"
+Pour nous, user_A --> 1000 et user_B --> 1001
+Cela sera important pour la création de services et de slices.
+
+## systemd
+
+Pour systemd, il est possible de créer un slice qui sera imposé à tous les utilisateurs ou plusieurs slices appartenants à des utilisateurs différents.
+Pour cela, nous devrons nous replacer dans le répertoire '/etc/systemd/system'.
+Nous créerons d'abord un fichier 'user-1000.slice' qui sera le slice où toutes les commandes de user_A seront exécutées.
+
+À l'intérieur, nous pouvons écrire :
+
+/etc/systemd/system/user-1000.slice
+```
+[Slice]
+CPUQuota=60%
+```
+
+Nous relançons la machine afin d'appliquer les changements puis nous pourrons lancer notre script de charge_cpu : 
+'sudo php /home/test_cgroups/charge_cpu.php &'
+
+Nous lançons en fond cette commande pour observer l'activité de notre slice avec la commande : "sudo systemd-cgtop"
+Nous constatons que pendant toute la durée de l'exécution de charge_cpu.php, la charge de CPU essaie de ne pas dépasser les 60%.
 
 Si nous faisons juste la commande : "mount -t cgroup -o cpu _nom_ _chemin/vers/cgroup_", alors il y a de fortes chances qu'une erreur apparaisse expliquant que le mount point est occupé.
 
