@@ -53,6 +53,14 @@ https://tecadmin.net/running-a-php-script-as-systemd-service-in-linux/
 
     • Exemple de création de services avec PHP.
 
+https://systemd.io/CGROUP_DELEGATION/
+
+    • Site officiel de systemd parlant des cgroups
+
+https://github.com/OpenRC/openrc/blob/master/service-script-guide.md
+
+    • Création de services sous Open-RC
+
 APPARMOR :
 
 https://doc.ubuntu-fr.org/apparmor#:~:text=AppArmor%20(%22Application%20Armor%22),les%20capacit%C3%A9s%20de%20celui%2Dci.
