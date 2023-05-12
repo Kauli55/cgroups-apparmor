@@ -394,9 +394,22 @@ CPUQuota=60%
 
 Nous relançons la machine afin d'appliquer les changements puis nous pourrons lancer notre script de charge_cpu : 
 'sudo php /home/test_cgroups/charge_cpu.php &'
+Nous exécutons evidemment la commande en temps que user_A qui a pour uid 1000.
 
 Nous lançons en fond cette commande pour observer l'activité de notre slice avec la commande : "sudo systemd-cgtop"
 Nous constatons que pendant toute la durée de l'exécution de charge_cpu.php, la charge de CPU essaie de ne pas dépasser les 60%.
+
+Pour prouver que ce n'est pas uniquement le cas que pour charge_cpu.php, il est possible d'utiliser la library 'stress'.
+Une fois installée, il est possible de simuler une charge sur le CPU.
+La commande serait : "stress -c 2 -t 30 &"
+Cela permet d'avoir en arrière plan le module qui simule deux instances travaillant sur le CPU et qui s'éteindront automatiquement au bout de 30 secondes.
+
+Si nous nous connections avec user_B qui lui n'a pas de restrictions et que nous réutilisions la commande de charge sur le CPU, nous pourrions voir que le CPU peut utiliser toutes ses capacités et n'est pas limité à 60%.
+
+## libcgroup
+
+libcgroup est utilisé en complément de systemd depuis que celui-ci gère les cgroups.
+libcgroup disposait avant de fichiers permettant de manipuler les cgroups ainsi que les limitations de chaques utilisateurs.
 
 Si nous faisons juste la commande : "mount -t cgroup -o cpu _nom_ _chemin/vers/cgroup_", alors il y a de fortes chances qu'une erreur apparaisse expliquant que le mount point est occupé.
 
