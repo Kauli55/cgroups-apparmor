@@ -69,3 +69,54 @@ Idée pour grouper plusieurs services dans même cgroups --> un service démarra
 Problème : tous les services seront exécutés en même temps et dans le même ordre.
 
 Il y a toujours l'option de créer manuellement un cgroup, mais il ne sera pas créé de façon permanente.
+
+# Manipulation de Cgroup v1
+
+cgroup v1 et cgroup v2 reposent sur les mêmes principes mais les exécutent de manières différentes.
+D'abord, il y a moins de contrôleurs pour cgroup v2 par rapport à cgroup v1.
+Cela ne veut pas dire que nous ne pouvons utiliser que l'un ou l'autre.
+En effet, il est possible de les utiliser en même temps de manière hybride.
+C'est le mode que nous utilisons sur notre Alpine.
+
+Essayons maintenant de manipuler le CPU uniquement avec la v1 de cgroups.
+
+Pour ce faire, nous allons même repasser en mode "legacy" afin que cgroup v2 soit désactivé.
+
+Nous retournons pour ce faire dans le fichier '/etc/rc.conf'.
+
+/etc/rc.conf
+```
+#rc_cgroup_mode="hybrid"
+rc_cgroup_mode="legacy"
+#rc_cgroup_controllers="cpuset cpu io memory hugetlb pids"
+```
+
+Il est important de mettre en commentaire la ligne 'rc_cgroup_controllers' afin que cgroup v1 monte bien tous les contrôleurs.
+Si nous ne la mettons pas en commentaire, alors le contrôleur CPU ne sera pas monté et disponible.
+
+Une fois que nous relançons la machine, nous pouvons voir que les changements sont effectués avec la commande : "ls /sys/fs/cgroup/".
+Si de nombreux dossiers sont présents et que parmi eux le répertoire /cpu/ existe, alors les changements ont bien été effectué.
+
+Nous allons maintenant créer un nouveau service testCpu1 qui sera identique au service testCpu2.
+Nous copions notre fichier 'testCpu' du répertoire '/etc/init.d' et nous le collons dans ce même répertoire avec comme nom 'testCpu1'.
+Les changements vont être visibles sur le fichier 'testCpu1' dans le répertoire '/etc/conf.d'
+
+En effet, la façon de préciser les limitations est un peu différente que pour cgroup v2.
+
+/etc/conf.d/testCpu1
+```
+rc_cgroup_cpu="cpu.cfs_quota_us 60000
+cpu.cfs_period_us 100000
+"
+```
+
+La principale différence est que nous devons créer une variable pour tous les contrôleurs différents s'ils doivent être modifiés.
+Nous ne modifions que les valeurs de CPU en l'occurence, il ne faudra donc préciser que 'rc_cgroup_cpu'.
+
+Les options marquées dans testCpu1 permettent de n'utiliser que 60% du CPU.
+
+Pour tester ceci, nous pourrons utiliser la commande : "rc-service testCpu1 start".
+Nous savons que sans limitation, la machine sur lequel les tests sont effectués mets environ 11 secondes à exécuter le service.
+Avec les limitations, nous nous retrouvons à environ 17-18 secondes.
+
+Les limitations sont donc bien prises en compte.

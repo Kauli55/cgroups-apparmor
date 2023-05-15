@@ -1,0 +1,4 @@
+#!/sbin/openrc-run
+
+command=/usr/bin/php
+command_args=/home/test_cgroups/charge_cpu.php
