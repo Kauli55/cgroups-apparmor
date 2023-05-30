@@ -33,7 +33,9 @@ https://linuxcontainers.org/lxc/manpages/man1/lxc-cgroup.1.html
 
     • Cgroups avec LXC
 
-Pas encore testé
+https://docs.nxp.com/bundle/GUID-555A0F6D-3FBC-4128-BA29-A220DC5DD74D/page/GUID-A5A93465-1123-4D95-B01B-6E71491B71EB.html
+
+    • Cgroups avec LXC : modifications cgroups non permanents
 
 https://wiki.gentoo.org/wiki/OpenRC/CGroups
 
