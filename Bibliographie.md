@@ -27,6 +27,12 @@ https://libvirt.org/cgroups.html#required-controllers
 
     • Utilisation des cgroups avec libvirt
 
+http://www.linux-admins.net/2013/01/configuring-lxc-using-libvirt.html
+
+https://libvirt.org/drvlxc.html
+
+https://wiki.archlinux.org/title/libvirt
+
 Pas encore testé
 
 https://linuxcontainers.org/lxc/manpages/man1/lxc-cgroup.1.html

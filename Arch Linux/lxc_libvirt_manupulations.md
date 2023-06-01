@@ -101,3 +101,29 @@ Le contrôleur "net_cls" est donc présent.
 Le contrôleur "net_cls" ne sert pas à directement modifier le comportement sur le réseau des tâches, mais permet de les identifier afin que iptable et le pare-feu puissent les identifier.
 
 Ensuite, il n'y aura plus qu'à rajouter le PID du processus concerné dans les tasks du cgroup.
+
+# Libvirt
+
+~/container1.xml
+```
+<domain type='lxc'>
+  <name>vm1</name>
+  <memory>500000</memory>
+  <os>
+    <type>exe</type>
+    <init>/bin/sh</init>
+  </os>
+  <vcpu>1</vcpu>
+  <clock offset='utc'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <devices>
+    <emulator>/usr/libexec/libvirt_lxc</emulator>
+    <interface type='network'>
+      <source network='default'/>
+    </interface>
+    <console type='pty' />
+  </devices>
+</domain>
+```
