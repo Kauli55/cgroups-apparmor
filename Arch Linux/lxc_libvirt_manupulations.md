@@ -100,6 +100,33 @@ Le contrôleur "net_cls" est donc présent.
 
 Le contrôleur "net_cls" ne sert pas à directement modifier le comportement sur le réseau des tâches, mais permet de les identifier afin que iptable et le pare-feu puissent les identifier.
 
+Nous utiliserons donc la commande "tc" afin de pouvoir modifier le comportement des packets sur le réseau.
+C'est ici que nous préciserons le comportement des packets identifiés par les cgroups.
+
+Nous établierons une connexion SSH entre notre container LXC et notre machine hôte.
+SSH doit donc être configuré sur notre machine hôte.
+
+Une fois ceci fait, nous pourrons utiliser la commande "scp" afin de transférer des fichiers entre le container LXC et la machine hôte.
+
+Sur notre container LXC, nous utiliserons donc les commandes suivantes afin d'établir des règles pour le réseau :
+
+LXC:
+```
+tc -s qdisc ls dev eth0
+tc qdisc add dev eth0 root handle 3:0 htb default 3
+tc class add dev eth0 parent 3:0 classid 3:0 htb rate 700kbps ceil 800kbps prio 0
+tc class add dev eth0 parent 3:0 classid 3:1 htb rate 100kbps ceil 200kbps prio 0
+tc class add dev eth0 parent 3:0 classid 3:2 htb rate 200kbps ceil 300kbps prio 0
+tc class add dev eth0 parent 3:0 classid 3:3 htb rate 300kbps ceil 400kbps prio 0
+```
+
+4 classes de réseau sont créées.
+Toutes ces classes ont une limite de bande passante différente et la classe utilisée par défaut est la 3ème identifiée par : 3:3
+
+La commande utilisée pour repérer le temps que met un fichier pour être transféré est : "time scp _nomFichier_@_ipAdresseHôte_:_chemin_"
+
+TODO: Mettre les images pour illustrer temps mis par SCP sur les fichiers de grande taille.
+
 Ensuite, il n'y aura plus qu'à rajouter le PID du processus concerné dans les tasks du cgroup.
 
 # Libvirt
