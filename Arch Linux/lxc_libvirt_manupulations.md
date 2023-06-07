@@ -112,12 +112,12 @@ Sur notre container LXC, nous utiliserons donc les commandes suivantes afin d'é
 
 LXC:
 ```
-tc -s qdisc ls dev eth0
-tc qdisc add dev eth0 root handle 3:0 htb default 3
-tc class add dev eth0 parent 3:0 classid 3:0 htb rate 700kbps ceil 800kbps prio 0
-tc class add dev eth0 parent 3:0 classid 3:1 htb rate 100kbps ceil 200kbps prio 0
-tc class add dev eth0 parent 3:0 classid 3:2 htb rate 200kbps ceil 300kbps prio 0
-tc class add dev eth0 parent 3:0 classid 3:3 htb rate 300kbps ceil 400kbps prio 0
+sudo tc -s qdisc ls dev eth0
+sudo tc qdisc add dev eth0 root handle 3:0 htb default 3
+sudo tc class add dev eth0 parent 3:0 classid 3:0 htb rate 700kbps ceil 800kbps prio 0
+sudo tc class add dev eth0 parent 3:0 classid 3:1 htb rate 100kbps ceil 200kbps prio 0
+sudo tc class add dev eth0 parent 3:0 classid 3:2 htb rate 200kbps ceil 300kbps prio 0
+sudo tc class add dev eth0 parent 3:0 classid 3:3 htb rate 300kbps ceil 400kbps prio 0
 ```
 
 4 classes de réseau sont créées.
@@ -125,7 +125,23 @@ Toutes ces classes ont une limite de bande passante différente et la classe uti
 
 La commande utilisée pour repérer le temps que met un fichier pour être transféré est : "time scp _nomFichier_@_ipAdresseHôte_:_chemin_"
 
-TODO: Mettre les images pour illustrer temps mis par SCP sur les fichiers de grande taille.
+Pour créer un fichier d'une taille de 50M, nous pouvons utiliser la commande : "fallocate -l 50M _nomFichier_"
+
+![Limite bien respectée (300kbps avec un seuil max de 400kbps)](./Limite_300kbps.PNG)
+
+Mettons ensuite en place un cgroup afin de pouvoir tester de nouvelles modifications sur le réseau.
+Pour cela, nous créerons le répertoire 'test' au chemin suivant : '/sys/fs/cgroup/net_cls/'
+
+Nous rajouterons ensuite un filtre afin de préciser le comportement du cgroup avec le réseau.
+La commande utilisée sera la suivante : 'sudo tc filter add dev eth0 protocol ip parent 3:0 prio 1 handle 3:3 cgroup'
+
+Nous devrons ensuite indiquer cela à notre cgroup ainsi que pour définir quelle classe est attribuée au cgroup.
+Nous voudrons la vitesse la plus basse des classes créées, c'est-à-dire la classe 3:1.
+
+Nous écrivons donc la classe 3:1 dans le classid : "echo 0x00030001 > /sys/fs/cgroup/net_cls/test/net_cls.classid"
+Puis nous ajoutons le PID de notre terminal dans les tasks du cgroup : "echo _pidDeNotreTerminal_ > /sys/fs/cgroup/net_cls/test/tasks"
+
+![Limite bien respectée (100kbps avec un seuil max de 200kbps)](./Limite_200kbps.PNG)
 
 Ensuite, il n'y aura plus qu'à rajouter le PID du processus concerné dans les tasks du cgroup.
 
