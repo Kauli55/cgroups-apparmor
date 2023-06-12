@@ -147,6 +147,16 @@ Ensuite, il n'y aura plus qu'à rajouter le PID du processus concerné dans les 
 
 # Libvirt
 
+virt-install --> uniquement cgroups v2 (cgroups v1 rend l'opération impossible sur l'installation la plus récente de virt-install)
+
+GRUB_CMDLINE_LINUX="systemd.unified_cgroup_hierarchy=1"
+
+virt-install \ --connect lxc:/// \ --name container \ --memory 128 \ --filesystem /home/LXC,/ \ --init /bin/sh
+
+commande ne marche pas (trop vieille version ou autre problème)
+
+Pas possible d'installer Alpine ou Ubuntu --> Problème URL
+
 ~/container1.xml
 ```
 <domain type='lxc'>
